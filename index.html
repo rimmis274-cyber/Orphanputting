@@ -1,40 +1,99 @@
-<!DOCTYPE html><html><body style="font-family:sans-serif;max-width:480px;margin:auto;padding:10px">
-<h3>Tote Logger</h3>
-<select id="tote" style="width:100%;font-size:18px"></select>
-<div style="margin:6px 0">
-  <input id="newTote" placeholder="New tote ID" style="font-size:16px">
-  <button onclick="addT()">Add</button>
-  <button onclick="detach()" style="float:right;background:#c33;color:#fff">Detach tote</button>
-</div>
-<input id="wid" placeholder="Scan WID" style="width:100%;font-size:20px;margin:4px 0" autofocus>
-<input id="loc" placeholder="Scan Location" style="width:100%;font-size:20px;margin:4px 0">
-<div>Scanned: <b id="cnt">0</b> | Pending: <b id="pend">0</b></div>
-<div id="list" style="font-size:14px"></div>
+<!DOCTYPE html><html><head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Roboto,Arial,sans-serif;background:#f1f3f6;color:#212121}
+header{background:#2874f0;color:#fff;padding:14px 16px;font-size:20px;font-weight:600;position:sticky;top:0;box-shadow:0 2px 4px rgba(0,0,0,.2)}
+header i{color:#ffe500;font-size:13px;font-weight:400;margin-left:6px}
+main{max-width:480px;margin:auto;padding:12px}
+.card{background:#fff;border-radius:4px;padding:12px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+label{display:block;font-size:12px;color:#878787;margin:10px 0 4px;text-transform:uppercase;letter-spacing:.4px}
+label:first-child{margin-top:0}
+input{width:100%;font-size:18px;padding:10px;border:1px solid #c2c2c2;border-radius:2px;outline:none}
+input:focus{border-color:#2874f0;box-shadow:0 0 0 2px rgba(40,116,240,.2)}
+button{border:0;border-radius:2px;padding:12px;font-size:15px;font-weight:600;cursor:pointer;width:100%;margin-top:12px}
+.pri{background:#2874f0;color:#fff}
+.attached{background:#e8f0fe;border-left:4px solid #2874f0;display:flex;justify-content:space-between;align-items:center}
+.attached b{font-size:20px;color:#2874f0;display:block}
+.attached small{color:#555}
+.seg{display:flex;gap:8px;margin-top:12px}
+.seg button{margin:0;background:#fff;color:#2874f0;border:1px solid #2874f0}
+.seg button.on{background:#2874f0;color:#fff}
+.seg button.on.d{background:#d32f2f;border-color:#d32f2f}
+.seg button.d{color:#d32f2f;border-color:#d32f2f}
+#list div{padding:8px 0;border-bottom:1px solid #eee;font-size:14px;word-break:break-all}
+</style></head><body>
+<header>Tote Logger<i>Explore Plus</i></header>
+<main>
+  <div id="s1" class="card">
+    <label>Scan tote ID</label>
+    <input id="toteIn" placeholder="Scan or enter tote ID" autofocus>
+    <button class="pri" onclick="attach()">ATTACH TOTE</button>
+  </div>
+
+  <div id="s2" style="display:none">
+    <div class="card attached">
+      <div><small>Tote attached</small><b id="toteLbl"></b></div>
+      <div style="text-align:right"><small>Scanned</small><b id="cnt">0</b></div>
+    </div>
+    <div class="card">
+      <label>WID</label>
+      <input id="wid" placeholder="Scan or enter WID">
+      <label>Location</label>
+      <input id="loc" placeholder="Scan or enter location">
+      <div class="seg">
+        <button id="bSame" class="on" onclick="setMode('same')">SAME TOTE</button>
+        <button id="bDet" class="d" onclick="setMode('detach')">DETACH TOTE</button>
+      </div>
+      <button class="pri" onclick="sub()">SUBMIT</button>
+    </div>
+  </div>
+
+  <div class="card"><label>Recent · Pending <b id="pend">0</b></label><div id="list"></div></div>
+</main>
 <script>
 const $=id=>document.getElementById(id);
-let q=[], busy=false, cnt={};
-function loadTotes(sel){google.script.run.withSuccessHandler(t=>{
-  $('tote').innerHTML=t.map(x=>`<option>${x}</option>`).join('');
-  if(sel)$('tote').value=sel; upd();}).getTotes();}
-function addT(){const v=$('newTote').value.trim(); if(!v)return;
-  google.script.run.withSuccessHandler(id=>{$('newTote').value='';loadTotes(id);$('wid').focus();}).addTote(v);}
-function upd(){$('cnt').textContent=cnt[$('tote').value]||0;$('pend').textContent=q.length+(busy?1:0);}
-$('tote').onchange=()=>{upd();$('wid').focus();};
+let tote=null,mode='same',q=[],busy=false,cnt=0;
+
+function show(){
+  $('s1').style.display=tote?'none':'block';
+  $('s2').style.display=tote?'block':'none';
+  $('toteLbl').textContent=tote||''; $('cnt').textContent=cnt;
+  (tote?$('wid'):$('toteIn')).focus();
+}
+function setMode(m){mode=m;
+  $('bSame').classList.toggle('on',m==='same');
+  $('bDet').classList.toggle('on',m==='detach');}
+function attach(){
+  const v=$('toteIn').value.trim(); if(!v)return;
+  tote=v; cnt=0; $('toteIn').value=''; show();
+  google.script.run.withSuccessHandler(n=>{cnt+=n;$('cnt').textContent=cnt;}).toteCount(v);
+}
+function sub(){
+  const w=$('wid').value.trim(), l=$('loc').value.trim();
+  if(!w||!l){(w?$('loc'):$('wid')).focus();return;}
+  const row=document.createElement('div'); row.textContent=`… ${w} → ${l}`; $('list').prepend(row);
+  q.push({fn:'logWid',args:[tote,w,l],row,w,l}); cnt++;
+  $('wid').value=''; $('loc').value='';
+  if(mode==='detach'){
+    const r2=document.createElement('div'); r2.textContent=`… detaching ${tote}`; $('list').prepend(r2);
+    q.push({fn:'detachTote',args:[tote],row:r2,t:tote});
+    tote=null; setMode('same');
+  }
+  show(); upd(); run();
+}
+function upd(){$('cnt').textContent=cnt;$('pend').textContent=q.length;}
+function run(){
+  if(busy||!q.length)return; busy=true; const it=q[0];
+  google.script.run
+    .withSuccessHandler(r=>{q.shift();busy=false;
+      it.row.textContent=it.fn==='logWid'?`✓ ${it.w} → ${it.l}${r&&r.dup?' (qty '+r.qty+')':''}`:`✓ ${it.t} detached`;
+      upd();run();})
+    .withFailureHandler(()=>{busy=false;it.row.textContent='✗ retrying…';setTimeout(run,2000);})
+    [it.fn](...it.args);
+}
+$('toteIn').addEventListener('keydown',e=>{if(e.key==='Enter')attach();});
 $('wid').addEventListener('keydown',e=>{if(e.key==='Enter'&&$('wid').value.trim())$('loc').focus();});
-$('loc').addEventListener('keydown',e=>{if(e.key!=='Enter')return;
-  const t=$('tote').value,w=$('wid').value.trim(),l=$('loc').value.trim();
-  if(!t||!w||!l)return;
-  const row=document.createElement('div');row.textContent=`… ${w} → ${l}`;$('list').prepend(row);
-  q.push({t,w,l,row});cnt[t]=(cnt[t]||0)+1;
-  $('wid').value='';$('loc').value='';$('wid').focus();upd();run();});   // instant clear, background send
-function run(){ if(busy||!q.length)return; busy=true; const it=q[0];
-  google.script.run.withSuccessHandler(r=>{q.shift();busy=false;
-    it.row.textContent=`✓ ${it.w} → ${it.l}${r.dup?' (qty '+r.qty+')':''}`;upd();run();})
-  .withFailureHandler(()=>{busy=false;it.row.textContent=`✗ retrying ${it.w}`;setTimeout(run,2000);})
-  .logWid(it.t,it.w,it.l);}
-function detach(){const t=$('tote').value; if(!t||q.length||busy)return alert('Wait for pending to finish');
-  if(!confirm('Detach '+t+'?'))return;
-  google.script.run.withSuccessHandler(()=>loadTotes()).detachTote(t);}
+$('loc').addEventListener('keydown',e=>{if(e.key==='Enter')sub();});
 window.onbeforeunload=()=>q.length?'Pending':undefined;
-loadTotes();
 </script></body></html>
