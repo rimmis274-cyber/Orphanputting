@@ -1,4 +1,6 @@
-<!DOCTYPE html><html><head>
+<!DOCTYPE html>
+<html>
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tote Logger</title>
@@ -10,10 +12,141 @@ header i{color:#ffe500;font-size:13px;font-weight:400;margin-left:6px}
 header small{float:right;font-size:11px;font-weight:400;opacity:.8;margin-top:6px}
 main{max-width:480px;margin:auto;padding:12px}
 #banner{display:none;background:#fdecea;color:#b71c1c;border-left:4px solid #d32f2f;border-radius:4px;padding:10px 12px;margin-bottom:12px;font-size:13px;word-break:break-word}
+.card{background:#fff;border-radius:4px;padding:14px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.card h3{margin:0 0 10px;font-size:15px}
+label{display:block;font-size:12px;color:#666;margin:8px 0 4px}
+input{width:100%;padding:12px;font-size:16px;border:1px solid #ccc;border-radius:4px}
+input:focus{outline:2px solid #2874f0;border-color:#2874f0}
+button{border:0;border-radius:4px;padding:12px 16px;font-size:15px;font-weight:600;color:#fff;background:#fb641b;cursor:pointer}
+button.sec{background:#fff;color:#2874f0;border:1px solid #2874f0}
+button:disabled{opacity:.5}
+.row{display:flex;gap:8px;margin-top:10px}
+.row>*{flex:1}
+.steps{display:flex;gap:6px;margin-bottom:10px;font-size:12px}
+.steps span{flex:1;text-align:center;padding:6px;border-radius:12px;background:#e0e0e0;color:#666}
+.steps span.on{background:#2874f0;color:#fff}
+.modes button{background:#fff;color:#2874f0;border:1px solid #2874f0}
+.modes button.on{background:#2874f0;color:#fff}
+ul{list-style:none;margin:10px 0 0;padding:0;max-height:220px;overflow:auto}
+li{display:flex;justify-content:space-between;padding:8px 4px;border-bottom:1px solid #eee;font-size:14px}
+li b{color:#d32f2f;cursor:pointer}
+.h{font-size:13px;padding:8px 10px;background:#e8f5e9;color:#1b5e20;border-radius:4px;margin-bottom:6px}
+.h.err{background:#fdecea;color:#b71c1c}
+.pill{font-size:12px;color:#666;text-align:right}
+</style>
+</head>
+<body>
 <header>Tote Logger<i>Explore Plus</i><small id="ver"></small></header>
 <main>
 <div id="banner"></div>
-const API='https://script.google.com/macros/s/AKfycbykdNT3mWYI1-AvczL6mlkTFCUXQR6wEgmyK7-ml6itAOo0dJ06AHysfqLV08qAZR3vTA/exec';   // https://script.google.com/macros/s/.../exec
+
+<div id="setup" class="card">
+  <div class="steps"><span id="s1" class="on">1 Tote</span><span id="s2">2 Location</span></div>
+  <label for="toteIn">Tote ID</label>
+  <input id="toteIn" autocomplete="off" placeholder="Scan or type tote">
+  <label for="locIn">Location</label>
+  <input id="locIn" autocomplete="off" placeholder="Scan or type location">
+  <div class="row"><button id="startBtn" onclick="start()">Start scanning</button></div>
+</div>
+
+<div id="scan" class="card" style="display:none">
+  <h3><span id="hdrTote"></span> @ <span id="hdrLoc"></span></h3>
+  <label for="wid">Scan WID</label>
+  <input id="wid" autocomplete="off" placeholder="Scan WID">
+  <div class="row"><button onclick="addWid()">Add</button></div>
+  <ul id="list"></ul>
+  <div class="pill" id="count">0 WIDs</div>
+  <label>After submit</label>
+  <div class="row modes">
+    <button id="mSame" class="on" onclick="setMode('same')">Keep tote</button>
+    <button id="mDet" onclick="setMode('detach')">Detach tote</button>
+  </div>
+  <div class="row">
+    <button class="sec" onclick="cancelBatch()">Cancel</button>
+    <button onclick="submitBatch()">Submit</button>
+  </div>
+</div>
+
+<div class="pill">Pending uploads: <span id="pend">0</span></div>
+<div id="log"></div>
+</main>
+
+<script>
+const API='<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tote Logger</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Roboto,Arial,sans-serif;background:#f1f3f6;color:#212121}
+header{background:#2874f0;color:#fff;padding:14px 16px;font-size:20px;font-weight:600;position:sticky;top:0;z-index:5;box-shadow:0 2px 4px rgba(0,0,0,.2)}
+header i{color:#ffe500;font-size:13px;font-weight:400;margin-left:6px}
+header small{float:right;font-size:11px;font-weight:400;opacity:.8;margin-top:6px}
+main{max-width:480px;margin:auto;padding:12px}
+#banner{display:none;background:#fdecea;color:#b71c1c;border-left:4px solid #d32f2f;border-radius:4px;padding:10px 12px;margin-bottom:12px;font-size:13px;word-break:break-word}
+.card{background:#fff;border-radius:4px;padding:14px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.card h3{margin:0 0 10px;font-size:15px}
+label{display:block;font-size:12px;color:#666;margin:8px 0 4px}
+input{width:100%;padding:12px;font-size:16px;border:1px solid #ccc;border-radius:4px}
+input:focus{outline:2px solid #2874f0;border-color:#2874f0}
+button{border:0;border-radius:4px;padding:12px 16px;font-size:15px;font-weight:600;color:#fff;background:#fb641b;cursor:pointer}
+button.sec{background:#fff;color:#2874f0;border:1px solid #2874f0}
+button:disabled{opacity:.5}
+.row{display:flex;gap:8px;margin-top:10px}
+.row>*{flex:1}
+.steps{display:flex;gap:6px;margin-bottom:10px;font-size:12px}
+.steps span{flex:1;text-align:center;padding:6px;border-radius:12px;background:#e0e0e0;color:#666}
+.steps span.on{background:#2874f0;color:#fff}
+.modes button{background:#fff;color:#2874f0;border:1px solid #2874f0}
+.modes button.on{background:#2874f0;color:#fff}
+ul{list-style:none;margin:10px 0 0;padding:0;max-height:220px;overflow:auto}
+li{display:flex;justify-content:space-between;padding:8px 4px;border-bottom:1px solid #eee;font-size:14px}
+li b{color:#d32f2f;cursor:pointer}
+.h{font-size:13px;padding:8px 10px;background:#e8f5e9;color:#1b5e20;border-radius:4px;margin-bottom:6px}
+.h.err{background:#fdecea;color:#b71c1c}
+.pill{font-size:12px;color:#666;text-align:right}
+</style>
+</head>
+<body>
+<header>Tote Logger<i>Explore Plus</i><small id="ver"></small></header>
+<main>
+<div id="banner"></div>
+
+<div id="setup" class="card">
+  <div class="steps"><span id="s1" class="on">1 Tote</span><span id="s2">2 Location</span></div>
+  <label for="toteIn">Tote ID</label>
+  <input id="toteIn" autocomplete="off" placeholder="Scan or type tote">
+  <label for="locIn">Location</label>
+  <input id="locIn" autocomplete="off" placeholder="Scan or type location">
+  <div class="row"><button id="startBtn" onclick="start()">Start scanning</button></div>
+</div>
+
+<div id="scan" class="card" style="display:none">
+  <h3><span id="hdrTote"></span> @ <span id="hdrLoc"></span></h3>
+  <label for="wid">Scan WID</label>
+  <input id="wid" autocomplete="off" placeholder="Scan WID">
+  <div class="row"><button onclick="addWid()">Add</button></div>
+  <ul id="list"></ul>
+  <div class="pill" id="count">0 WIDs</div>
+  <label>After submit</label>
+  <div class="row modes">
+    <button id="mSame" class="on" onclick="setMode('same')">Keep tote</button>
+    <button id="mDet" onclick="setMode('detach')">Detach tote</button>
+  </div>
+  <div class="row">
+    <button class="sec" onclick="cancelBatch()">Cancel</button>
+    <button onclick="submitBatch()">Submit</button>
+  </div>
+</div>
+
+<div class="pill">Pending uploads: <span id="pend">0</span></div>
+<div id="log"></div>
+</main>
+
+<script>
+const API='https://script.google.com/macros/s/AKfycbykdNT3mWYI1-AvczL6mlkTFCUXQR6wEgmyK7-ml6itAOo0dJ06AHysfqLV08qAZR3vTA/exec';
 
 const $=id=>document.getElementById(id);
 let tote=null,loc=null,items=[],mode='same',q=[],busy=false;
@@ -23,18 +156,76 @@ function banner(m){const b=$('banner');b.style.display=m?'block':'none';b.textCo
 fetch(API).then(r=>r.json())
   .then(r=>{if(r.ok){$('ver').textContent=r.version;banner('');}else banner('Backend error: '+r.error);})
   .catch(()=>banner('Cannot reach backend. Check API URL, and deploy access = Anyone.'));
-  q.push({t:tote,l:loc,items:items,d:detach,row:row,total:total,tries:0});
+
+function stepper(n){$('s1').className=n===1?'on':'';$('s2').className=n===2?'on':'';}
+
+function showSetup(){
+  $('setup').style.display='block';$('scan').style.display='none';
+  $('toteIn').value=tote||'';$('locIn').value='';
+  $('toteIn').readOnly=false;
+  if(tote){stepper(2);$('locIn').focus();}else{stepper(1);$('toteIn').focus();}
+}
+
+function setMode(m){
+  mode=m;
+  $('mSame').className=m==='same'?'on':'';
+  $('mDet').className=m==='detach'?'on':'';
+}
+
+function start(){
+  const t=$('toteIn').value.trim(),l=$('locIn').value.trim();
+  if(!t){banner('Enter a tote ID');$('toteIn').focus();return;}
+  if(!l){banner('Enter a location');$('locIn').focus();return;}
+  banner('');tote=t;loc=l;items=[];
+  $('hdrTote').textContent=tote;$('hdrLoc').textContent=loc;
+  $('setup').style.display='none';$('scan').style.display='block';
+  renderList();$('wid').focus();
+}
+
+function addWid(){
+  const v=$('wid').value.trim();
+  if(!v)return;
+  if(items.includes(v)){banner('Duplicate WID: '+v);}
+  else{items.push(v);banner('');}
+  $('wid').value='';renderList();$('wid').focus();
+}
+
+function removeWid(i){items.splice(i,1);renderList();}
+
+function renderList(){
+  const ul=$('list');ul.innerHTML='';
+  items.forEach((w,i)=>{
+    const li=document.createElement('li');
+    const s=document.createElement('span');s.textContent=w;
+    const x=document.createElement('b');x.textContent='✕';x.onclick=()=>removeWid(i);
+    li.append(s,x);ul.append(li);
+  });
+  $('count').textContent=items.length+' WIDs';
+}
+
+function cancelBatch(){items=[];tote=null;loc=null;showSetup();}
+
+function submitBatch(){
+  if(!items.length){banner('Scan at least one WID');return;}
+  const detach=(mode==='detach');
+  const row=document.createElement('div');row.className='h';
+  row.textContent='… '+tote+' @ '+loc+' · '+items.length+' WIDs · sending';
+  $('log').prepend(row);
+  q.push({t:tote,l:loc,items:items,d:detach,row:row,total:items.length,tries:0});
   items=[];if(detach)tote=null;
   setMode('same');loc=null;
   showSetup();upd();run();
 }
+
 function upd(){$('pend').textContent=q.length;}
+
 function fail(b,msg){
   busy=false;b.tries++;b.row.className='h err';
   if(b.tries<3){b.row.textContent='✗ '+msg+' · retrying '+b.tries+'/3';setTimeout(run,2000);}
   else{b.row.textContent='✗ '+msg+' · TAP TO RETRY';b.row.style.cursor='pointer';
     b.row.onclick=()=>{b.tries=0;b.row.onclick=null;b.row.style.cursor='';run();};}
 }
+
 function run(){
   if(busy||!q.length)return;busy=true;const b=q[0];
   fetch(API,{method:'POST',body:JSON.stringify({tote:b.t,loc:b.l,items:b.items,detach:b.d})})
@@ -45,9 +236,110 @@ function run(){
       else fail(b,(r&&r.error)||'Bad response');})
     .catch(e=>fail(b,'Network/CORS: '+e.message));
 }
+
 $('toteIn').addEventListener('keydown',e=>{if(e.key==='Enter'&&$('toteIn').value.trim()){stepper(2);$('locIn').focus();}});
 $('locIn').addEventListener('keydown',e=>{if(e.key==='Enter')start();});
 $('wid').addEventListener('keydown',e=>{if(e.key==='Enter')addWid();});
 window.onbeforeunload=()=>q.length?'Pending':undefined;
 showSetup();
-</script></body></html>
+</script>
+</body>
+</html>';
+
+const $=id=>document.getElementById(id);
+let tote=null,loc=null,items=[],mode='same',q=[],busy=false;
+
+function banner(m){const b=$('banner');b.style.display=m?'block':'none';b.textContent=m||'';}
+
+fetch(API).then(r=>r.json())
+  .then(r=>{if(r.ok){$('ver').textContent=r.version;banner('');}else banner('Backend error: '+r.error);})
+  .catch(()=>banner('Cannot reach backend. Check API URL, and deploy access = Anyone.'));
+
+function stepper(n){$('s1').className=n===1?'on':'';$('s2').className=n===2?'on':'';}
+
+function showSetup(){
+  $('setup').style.display='block';$('scan').style.display='none';
+  $('toteIn').value=tote||'';$('locIn').value='';
+  $('toteIn').readOnly=false;
+  if(tote){stepper(2);$('locIn').focus();}else{stepper(1);$('toteIn').focus();}
+}
+
+function setMode(m){
+  mode=m;
+  $('mSame').className=m==='same'?'on':'';
+  $('mDet').className=m==='detach'?'on':'';
+}
+
+function start(){
+  const t=$('toteIn').value.trim(),l=$('locIn').value.trim();
+  if(!t){banner('Enter a tote ID');$('toteIn').focus();return;}
+  if(!l){banner('Enter a location');$('locIn').focus();return;}
+  banner('');tote=t;loc=l;items=[];
+  $('hdrTote').textContent=tote;$('hdrLoc').textContent=loc;
+  $('setup').style.display='none';$('scan').style.display='block';
+  renderList();$('wid').focus();
+}
+
+function addWid(){
+  const v=$('wid').value.trim();
+  if(!v)return;
+  if(items.includes(v)){banner('Duplicate WID: '+v);}
+  else{items.push(v);banner('');}
+  $('wid').value='';renderList();$('wid').focus();
+}
+
+function removeWid(i){items.splice(i,1);renderList();}
+
+function renderList(){
+  const ul=$('list');ul.innerHTML='';
+  items.forEach((w,i)=>{
+    const li=document.createElement('li');
+    const s=document.createElement('span');s.textContent=w;
+    const x=document.createElement('b');x.textContent='✕';x.onclick=()=>removeWid(i);
+    li.append(s,x);ul.append(li);
+  });
+  $('count').textContent=items.length+' WIDs';
+}
+
+function cancelBatch(){items=[];tote=null;loc=null;showSetup();}
+
+function submitBatch(){
+  if(!items.length){banner('Scan at least one WID');return;}
+  const detach=(mode==='detach');
+  const row=document.createElement('div');row.className='h';
+  row.textContent='… '+tote+' @ '+loc+' · '+items.length+' WIDs · sending';
+  $('log').prepend(row);
+  q.push({t:tote,l:loc,items:items,d:detach,row:row,total:items.length,tries:0});
+  items=[];if(detach)tote=null;
+  setMode('same');loc=null;
+  showSetup();upd();run();
+}
+
+function upd(){$('pend').textContent=q.length;}
+
+function fail(b,msg){
+  busy=false;b.tries++;b.row.className='h err';
+  if(b.tries<3){b.row.textContent='✗ '+msg+' · retrying '+b.tries+'/3';setTimeout(run,2000);}
+  else{b.row.textContent='✗ '+msg+' · TAP TO RETRY';b.row.style.cursor='pointer';
+    b.row.onclick=()=>{b.tries=0;b.row.onclick=null;b.row.style.cursor='';run();};}
+}
+
+function run(){
+  if(busy||!q.length)return;busy=true;const b=q[0];
+  fetch(API,{method:'POST',body:JSON.stringify({tote:b.t,loc:b.l,items:b.items,detach:b.d})})
+    .then(r=>r.json())
+    .then(r=>{
+      if(r&&r.ok){q.shift();busy=false;b.row.className='h';
+        b.row.textContent='✓ '+b.t+' @ '+b.l+' · '+b.total+' WIDs'+(b.d?' · detached':'');upd();run();}
+      else fail(b,(r&&r.error)||'Bad response');})
+    .catch(e=>fail(b,'Network/CORS: '+e.message));
+}
+
+$('toteIn').addEventListener('keydown',e=>{if(e.key==='Enter'&&$('toteIn').value.trim()){stepper(2);$('locIn').focus();}});
+$('locIn').addEventListener('keydown',e=>{if(e.key==='Enter')start();});
+$('wid').addEventListener('keydown',e=>{if(e.key==='Enter')addWid();});
+window.onbeforeunload=()=>q.length?'Pending':undefined;
+showSetup();
+</script>
+</body>
+</html>
